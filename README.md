@@ -1,14 +1,18 @@
 # Project Name: Cassis IA Proof of Concept
 
 ## Description
-La preuve de concept du projet CASSIS IA.
+The proof of concept of the projet CASSIS IA. This project provides a web interface for managing database entries. It includes functionality to detect duplicate entries, add new entries, or replace existing ones.
 
 ## Features
 - Data import/export from Excel and CSV files.
-- Integration with other data sources (e.g. medCHUV).
-- AI-powered duplicate detection and embeddings.
-- Structured data outputs.
-- Laravel front-end with Filament package.
+- Add new entries via text input or file upload
+- Detect and resolve duplicate entries
+- Replace existing entries or add them as new
+
+## Technologies Used
+- **Frontend**: React, Bootstrap
+- **Backend**: Flask, PostgreSQL
+- **APIs**: OpenAI GPT for text processing
 
 ## Requirements
 - Python 3.8+
@@ -19,49 +23,13 @@ La preuve de concept du projet CASSIS IA.
 - Jupyter Notebook
 
 ## Installation
+
 ### Clone the repository
    ```bash
    git clone https://github.com/your-username/cassis-ia.git
    cd cassis-ia
    ```
-### Backend Setup (Laravel):
-1. Navigate to the `backend/` folder:
-    ```bash
-   cd backend
-    ```
-2. Install dependencies:
-    ```bash
-    composer install
-    ```
-3. Copy the `.env` file:
-   ```bash
-    cp .env.example .env
-    ```
-4. Configure the `.env` file with your database credentials:
-    ```.env
-    DB_CONNECTION=pgsql
-    DB_HOST=127.0.0.1
-    DB_PORT=5432
-    DB_DATABASE=cassis_ia
-    DB_USERNAME=your_db_username
-    DB_PASSWORD=your_db_password
-    ```
-5. Run migrations:
-    ```bash
-    php artisan migrate
-    ```
-6. Create an admin user for Filament:
-    ```bash
-    php artisan make:filament-user
-    ```
-7. Start the development server:
-    ```bash
-    php artisan serve
-    ```
-8. Access the admin panel:
-    ```bash
-    http://127.0.0.1:8000/admin
-    ```
+
 ### Python Setup for CSV Import:
 1. Navigate to the `scripts/` folder:
     ```bash
@@ -71,14 +39,46 @@ La preuve de concept du projet CASSIS IA.
     ```bash
     pip install pandas sqlalchemy psycopg2
     ```
-3. Run the CSV import script
+3. Run the CSV import script:
    ```bash
     python init_database.py
     ```
 
+### Backend Setup (Flask):
+1. Navigate to the `backend_flask/` folder:
+    ```bash
+   cd backend_flask
+    ```
+2. Install dependencies:
+    ```bash
+    pip install
+    ```
+3. Copy the `.env` file:
+   ```bash
+    cp .env.example .env
+    ```
+4. Start the backend server:
+    ```.bash
+    python app.py
+    ```
+
+### Backend Setup:
+1. Navigate to the `fontend/` folder:
+    ```bash
+   cd frontend
+    ```
+2. Install npm dependencies:
+    ```bash
+    npm install
+    ```
+3. Start the frontend:
+   ```bash
+    npm start
+    ```
+
 ## Usage
 - Load and preprocess data using the provided scripts.
-- View and manage data through the Laravel front-end.
+- View and manage data through the frontend
 - Generate embeddings and structured outputs using Python scripts.
 
 ## Contribution
