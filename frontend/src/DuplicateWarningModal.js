@@ -1,52 +1,74 @@
 import React, { useState, useEffect } from "react";
 
 function DuplicateWarningModal({ duplicate, onUpdate, onReplace, onAdd, onCancel, onNext }) {
-  const TABLE_FIELDS = [
-    "type_de_partenaire",
-    "personnalite_juridique",
-    "type_de_fournisseur",
-    "nom",
-    "prenom",
-    "voie",
-    "complement",
-    "npa",
-    "localite",
-    "pays",
-    "telephone",
-    "portable",
-    "courriel",
-    "site_web",
-    "activite_specialite",
-    "medecin",
-    "medecin_intra_hospitalier",
-    "horaires_ouverture",
-    "coord_geo_nord",
-    "coord_geo_est",
-    "coord_geo_long",
-    "coord_geo_lat",
-    "besoin_convention",
-    "type_de_convention",
-    "date_convention_soumise",
-    "date_convention_valide_recue",
-    "date_derniere_modification",
-    "date_saisie",
-    "date_dernier_appel_actualisation",
-  ];
+  const TABLE_FIELDS = duplicate?.new_entry?.hasOwnProperty("nom_evenement")
+    ? [
+        "nom_evenement",
+        "titre_evenement",
+        "date_debut",
+        "date_fin",
+        "horaire_debut",
+        "horaire_fin",
+        "texte_libre",
+        "court_descriptif",
+        "numero_partenaire",
+        "nom_partenaire",
+        "partenaire_de_la_selection",
+        "sites_originaux",
+        "date_creation",
+        "mode_creation",
+        "date_derniere_modification",
+        "mode_modification",
+        "id_dernier_modificateur",
+        "date_de_peremption",
+      ]
+    : [
+        "type_de_partenaire",
+        "personnalite_juridique",
+        "type_de_fournisseur",
+        "nom",
+        "prenom",
+        "voie",
+        "complement",
+        "npa",
+        "localite",
+        "pays",
+        "telephone",
+        "portable",
+        "courriel",
+        "site_web",
+        "activite_specialite",
+        "medecin",
+        "medecin_intra_hospitalier",
+        "horaires_ouverture",
+        "coord_geo_nord",
+        "coord_geo_est",
+        "coord_geo_long",
+        "coord_geo_lat",
+        "besoin_convention",
+        "type_de_convention",
+        "date_convention_soumise",
+        "date_convention_valide_recue",
+        "date_derniere_modification",
+        "date_saisie",
+        "date_dernier_appel_actualisation",
+      ];
 
   const [editedEntry, setEditedEntry] = useState({});
   const [selectedExistingEntry, setSelectedExistingEntry] = useState(null);
 
   useEffect(() => {
-    // Prepare new entry data based on duplicate information
-    const newEntryData = TABLE_FIELDS.reduce(
-      (acc, field) => ({
-        ...acc,
-        [field]: duplicate.new_entry[field] || "",
-      }),
-      {}
-    );
-    setEditedEntry(newEntryData);
-    setSelectedExistingEntry(null); // Reset selection when duplicate changes
+    if (duplicate) {
+      const newEntryData = TABLE_FIELDS.reduce(
+        (acc, field) => ({
+          ...acc,
+          [field]: duplicate.new_entry[field] || "",
+        }),
+        {}
+      );
+      setEditedEntry(newEntryData);
+      setSelectedExistingEntry(null);
+    }
   }, [duplicate]);
 
   const handleFieldChange = (field, value) => {
@@ -55,12 +77,12 @@ function DuplicateWarningModal({ duplicate, onUpdate, onReplace, onAdd, onCancel
 
   const handleSelectExistingEntry = (entry) => {
     setSelectedExistingEntry(entry);
-    setEditedEntry((prev) => ({ ...prev, numero: entry.numero })); // Attach the selected numero for replacement
+    setEditedEntry((prev) => ({ ...prev, numero: entry.numero }));
   };
 
   const handleAddAndNext = async () => {
-    await onAdd(editedEntry); // Add the entry
-    onNext(); // Move to the next duplicate
+    await onAdd(editedEntry);
+    onNext();
   };
 
   const handleReplaceAndNext = async () => {
@@ -68,8 +90,8 @@ function DuplicateWarningModal({ duplicate, onUpdate, onReplace, onAdd, onCancel
       alert("Please select an entry to replace.");
       return;
     }
-    await onReplace(editedEntry); // Replace the entry
-    onNext(); // Move to the next duplicate
+    await onReplace(editedEntry);
+    onNext();
   };
 
   return (
@@ -103,7 +125,7 @@ function DuplicateWarningModal({ duplicate, onUpdate, onReplace, onAdd, onCancel
             </form>
 
             <h6>Existing Entries in Database:</h6>
-            {duplicate.existing_entries.map((existing, idx) => (
+            {duplicate?.existing_entries.map((existing, idx) => (
               <div
                 key={idx}
                 className={`border p-2 mb-2 ${

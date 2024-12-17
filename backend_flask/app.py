@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure OpenAI API key
-openai.api_key = "your_open_ai_key"
+openai.api_key = "API key"
 
 # Database connection
 def get_db_connection():
@@ -265,6 +265,106 @@ def add_entry():
         conn.commit()
         conn.close()
         return jsonify({'message': 'Entry added successfully'}), 201
+
+    except Exception as e:
+        return jsonify({'error': f"Database error: {str(e)}"}), 500
+    
+@app.route('/evenements', methods=['GET'])
+def get_evenement_entries():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM evenement;")
+        rows = cursor.fetchall()
+        column_names = [desc[0] for desc in cursor.description]
+        conn.close()
+        return jsonify([dict(zip(column_names, row)) for row in rows])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/add-evenement', methods=['POST'])
+def add_evenement_entry():
+    try:
+        entry = request.json  # Expecting a single entry as JSON
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Convert empty strings to None (NULL in SQL)
+        processed_entry = {k: (None if v == "" else v) for k, v in entry.items()}
+
+        # Add current date to `date_derniere_modification`
+        processed_entry['date_derniere_modification'] = datetime.now().strftime('%Y-%m-%d')
+
+        columns = ', '.join(processed_entry.keys())
+        values = ', '.join(['%s'] * len(processed_entry))
+        cursor.execute(f"INSERT INTO evenement ({columns}) VALUES ({values})", list(processed_entry.values()))
+
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Evenement entry added successfully'}), 201
+
+    except Exception as e:
+        return jsonify({'error': f"Database error: {str(e)}"}), 500
+    
+@app.route('/replace-evenement', methods=['PUT'])
+def replace_evenement_entry():
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        for entry in data:
+            # Convert empty strings to None (NULL in SQL)
+            processed_entry = {k: (None if v == "" else v) for k, v in entry.items()}
+
+            if "numero" in processed_entry:
+                cursor.execute("""
+                    UPDATE evenement
+                    SET nom_evenement = %s,
+                        titre_evenement = %s,
+                        date_debut = %s,
+                        date_fin = %s,
+                        horaire_debut = %s,
+                        horaire_fin = %s,
+                        texte_libre = %s,
+                        court_descriptif = %s,
+                        numero_partenaire = %s,
+                        nom_partenaire = %s,
+                        partenaire_de_la_selection = %s,
+                        sites_originaux = %s,
+                        date_creation = %s,
+                        mode_creation = %s,
+                        date_derniere_modification = CURRENT_DATE,
+                        mode_modification = %s,
+                        id_dernier_modificateur = %s,
+                        date_de_peremption = %s
+                    WHERE numero = %s
+                """, (
+                    processed_entry.get("nom_evenement"),
+                    processed_entry.get("titre_evenement"),
+                    processed_entry.get("date_debut"),
+                    processed_entry.get("date_fin"),
+                    processed_entry.get("horaire_debut"),
+                    processed_entry.get("horaire_fin"),
+                    processed_entry.get("texte_libre"),
+                    processed_entry.get("court_descriptif"),
+                    processed_entry.get("numero_partenaire"),
+                    processed_entry.get("nom_partenaire"),
+                    processed_entry.get("partenaire_de_la_selection"),
+                    processed_entry.get("sites_originaux"),
+                    processed_entry.get("date_creation"),
+                    processed_entry.get("mode_creation"),
+                    processed_entry.get("mode_modification"),
+                    processed_entry.get("id_dernier_modificateur"),
+                    processed_entry.get("date_de_peremption"),
+                    processed_entry["numero"]
+                ))
+            else:
+                return jsonify({'error': "Missing 'numero' field for replacement"}), 400
+
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Evenement entry replaced successfully'}), 200
 
     except Exception as e:
         return jsonify({'error': f"Database error: {str(e)}"}), 500

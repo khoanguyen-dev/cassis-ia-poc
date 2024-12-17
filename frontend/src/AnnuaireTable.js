@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 
-const EntriesTable = memo(({ entries }) => (
+const AnnuaireTable = memo(({ entries }) => (
   <section className="mt-4">
     <table className="table table-striped table-bordered">
       <thead className="table-dark">
@@ -87,4 +87,4 @@ const EntriesTable = memo(({ entries }) => (
   </section>
 ));
 
-export default EntriesTable;
+export default AnnuaireTable;
