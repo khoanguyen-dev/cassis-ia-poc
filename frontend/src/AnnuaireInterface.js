@@ -6,115 +6,78 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 const AnnuaireInterface = () => {
   const [textInput, setTextInput] = useState("");
+  const [urlInput, setUrlInput] = useState("");
   const [fileInput, setFileInput] = useState(null);
   const [entries, setEntries] = useState([]);
   const [responseMessage, setResponseMessage] = useState("");
   const [duplicates, setDuplicates] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [currentDuplicateIndex, setCurrentDuplicateIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch entries from the backend
   useEffect(() => {
-    const fetchEntries = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/entries");
-        setEntries(response.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
     fetchEntries();
   }, []);
 
-  // Handle text input change
-  const handleTextChange = (e) => setTextInput(e.target.value);
+  const fetchEntries = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get("http://127.0.0.1:5000/annuaire");
+      setEntries(response.data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setResponseMessage("Failed to fetch entries.");
+      setIsLoading(false);
+    }
+  };
 
-  // Handle file input change
-  const handleFileChange = (e) => setFileInput(e.target.files[0]);
+  const resetInputs = () => {
+    setTextInput("");
+    setUrlInput("");
+    setFileInput(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append("text", textInput);
-    if (fileInput) {
-      formData.append("file", fileInput);
-    }
-  
+    formData.append("url", urlInput);
+    if (fileInput) formData.append("file", fileInput);
+
+    setIsLoading(true);
     try {
-      const response = await axios.post("http://127.0.0.1:5000/process", formData, {
+      const response = await axios.post("http://127.0.0.1:5000/process-annuaire", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-  
+
       if (response.status === 201) {
-        const updatedEntries = await axios.get("http://127.0.0.1:5000/entries");
-        setEntries(updatedEntries.data);
+        fetchEntries();
         setResponseMessage("Entries successfully added!");
+        resetInputs();
       }
     } catch (error) {
-      if (error.response) {
-        const { status, data } = error.response;
-        if (status === 409) {
-          setDuplicates(data.duplicates);
-          setCurrentDuplicateIndex(0); // Reset the index for modal navigation
-          setShowModal(true); // Show modal with duplicates
-        } else {
-          setResponseMessage(`Error (${status}): ${data?.error || "An error occurred."}`);
-        }
+      handleResponseError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResponseError = (error) => {
+    if (error.response) {
+      const { status, data } = error.response;
+      if (status === 409) {
+        setDuplicates(data.duplicates || []);
+        setCurrentDuplicateIndex(0);
+        setShowModal(true);
       } else {
-        setResponseMessage("An unexpected error occurred. Please try again.");
+        setResponseMessage(`Error (${status}): ${data?.error || "An error occurred."}`);
       }
-      console.error("Error processing input:", error);
-    }
-  };  
-
-  // Resolve duplicate: Update the entry
-  const handleUpdate = async (updatedEntry) => {
-    try {
-      await axios.put("http://127.0.0.1:5000/update-entry", updatedEntry);
-
-      // Refresh the table and move to the next duplicate
-      const updatedEntries = await axios.get("http://127.0.0.1:5000/entries");
-      setEntries(updatedEntries.data);
-      handleNextDuplicate();
-    } catch (error) {
-      console.error("Error updating entry:", error);
+    } else {
+      setResponseMessage("An unexpected error occurred. Please try again.");
     }
   };
 
-  // Resolve duplicate: Replace the entry
-  const handleReplace = async (replacementEntry) => {
-    if (!replacementEntry.numero) {
-      alert("Please select an entry to replace.");
-      return;
-    }
-    try {
-      await axios.put("http://127.0.0.1:5000/replace-entry", [replacementEntry]);
-
-      // Refresh the table and move to the next duplicate
-      const updatedEntries = await axios.get("http://127.0.0.1:5000/entries");
-      setEntries(updatedEntries.data);
-      handleNextDuplicate();
-    } catch (error) {
-      console.error("Error replacing entry:", error);
-    }
-  };
-
-  // Resolve duplicate: Add as new entry
-  const handleAdd = async (newEntry) => {
-    try {
-      await axios.post("http://127.0.0.1:5000/add-entry", newEntry); // Use the /add-entry endpoint
-
-      // Refresh the table and move to the next duplicate
-      const updatedEntries = await axios.get("http://127.0.0.1:5000/entries");
-      setEntries(updatedEntries.data);
-      handleNextDuplicate();
-    } catch (error) {
-      console.error("Error adding new entry:", error);
-    }
-  };
-
-  // Move to the next duplicate or close the modal
   const handleNextDuplicate = () => {
     if (currentDuplicateIndex + 1 < duplicates.length) {
       setCurrentDuplicateIndex(currentDuplicateIndex + 1);
@@ -124,23 +87,44 @@ const AnnuaireInterface = () => {
     }
   };
 
-  // Cancel duplicate resolution
   const handleCancel = () => {
     setShowModal(false);
     setResponseMessage("Duplicate resolution canceled.");
+  };
+
+  const handleDuplicateResolution = async (action, updatedEntry) => {
+    try {
+      const url =
+        action === "replace"
+          ? "http://127.0.0.1:5000/replace-annuaire"
+          : "http://127.0.0.1:5000/add-annuaire";
+
+      const method = action === "replace" ? "put" : "post";
+
+      await axios[method](url, action === "replace" ? [updatedEntry] : updatedEntry);
+      fetchEntries();
+      handleNextDuplicate();
+    } catch (error) {
+      console.error(`Error resolving duplicate with ${action}:`, error);
+      setResponseMessage(`Failed to ${action} entry.`);
+    }
   };
 
   return (
     <div className="container mt-4">
       <h1 className="text-center">Annuaire Management</h1>
 
-      {/* Display Table */}
+      {isLoading && (
+        <div className="alert alert-info text-center" role="alert">
+          Loading...
+        </div>
+      )}
+
       <section>
         <h2 className="mt-4">Annuaire</h2>
         <AnnuaireTable entries={entries} />
       </section>
 
-      {/* Input Panel */}
       <section>
         <h2 className="mt-4">Add New Entries</h2>
         <form onSubmit={handleSubmit}>
@@ -148,22 +132,33 @@ const AnnuaireInterface = () => {
             <label className="form-label">Enter Text:</label>
             <textarea
               value={textInput}
-              onChange={handleTextChange}
+              onChange={(e) => setTextInput(e.target.value)}
               className="form-control"
-              rows="5"
+              rows="3"
+              placeholder="Enter text data..."
             />
           </div>
           <div className="mb-3">
-            <label className="form-label">Or Upload File:</label>
+            <label className="form-label">Or Enter URL:</label>
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              className="form-control"
+              placeholder="https://example.com"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="form-label">Or Upload File (CSV/XLSX/TXT):</label>
             <input
               type="file"
-              accept=".txt"
-              onChange={handleFileChange}
+              accept=".txt,.csv,.xlsx"
+              onChange={(e) => setFileInput(e.target.files[0])}
               className="form-control"
             />
           </div>
-          <button type="submit" className="btn btn-primary">
-            Submit
+          <button type="submit" className="btn btn-primary" disabled={isLoading}>
+            {isLoading ? "Submitting..." : "Submit"}
           </button>
         </form>
         {responseMessage && (
@@ -173,13 +168,12 @@ const AnnuaireInterface = () => {
         )}
       </section>
 
-      {/* Duplicate Warning Modal */}
       {showModal && duplicates.length > 0 && (
         <DuplicateWarningModal
           duplicate={duplicates[currentDuplicateIndex]}
-          onUpdate={handleUpdate}
-          onReplace={handleReplace}
-          onAdd={handleAdd} // Pass the handleAdd function here
+          onUpdate={(updatedEntry) => handleDuplicateResolution("replace", updatedEntry)}
+          onReplace={(replacementEntry) => handleDuplicateResolution("replace", replacementEntry)}
+          onAdd={(newEntry) => handleDuplicateResolution("add", newEntry)}
           onCancel={handleCancel}
           onNext={handleNextDuplicate}
         />
